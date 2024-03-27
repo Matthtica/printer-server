@@ -17,6 +17,7 @@ cargo build --release --target x86_64-pc-windows-gnu
 rustup target add x86_64-unknown-linux-gnu
 cargo build --release --target x86_64-unknown-linux-gnu
 ```
-
-> Required rust setted up. For instruction on how to setup [rust](https://www.rust-lang.org/learn/get-started)
+### Requirement
+- Required rust setted up. For instruction on how to setup [rust](https://www.rust-lang.org/learn/get-started)
+- html2pdf cli program. Install it with `cargo install html2pdf`
 
