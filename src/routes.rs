@@ -1,7 +1,4 @@
-use axum::{
-    http::StatusCode, Json,
-    extract::Path
-};
+use axum::{extract::Path, http::StatusCode, Json};
 use printers;
 use serde::{Deserialize, Serialize};
 
@@ -17,13 +14,17 @@ pub async fn get_printer_names() -> (StatusCode, Json<Vec<String>>) {
 
 #[derive(Deserialize, Serialize)]
 pub struct Params {
-    printer_name: String
+    printer_name: String,
 }
 
 pub async fn print(Path(Params { printer_name }): Path<Params>) -> StatusCode {
     println!("Printing to {}", printer_name);
 
-    let status = printers::print(printer_name.as_ref(), "Hello world!".as_bytes(), Some("Test printer server"));
+    let status = printers::print(
+        printer_name.as_ref(),
+        "Hello world!".as_bytes(),
+        Some("Test printer server"),
+    );
     if status.is_ok() {
         StatusCode::OK
     } else {
