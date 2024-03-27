@@ -1,12 +1,24 @@
-use axum::{routing::get, Router};
+use axum::{
+    routing::{get, post},
+    Router,
+    http::Method,
+    http::header::CONTENT_TYPE
+};
 use printer_server::*;
+use tower_http::cors::{Any, CorsLayer};
 
 #[tokio::main]
 async fn main() {
+    let cors = CorsLayer::new()
+        .allow_methods([Method::GET, Method::POST])
+        .allow_origin(Any)
+        .allow_headers([CONTENT_TYPE]);
+
     let app = Router::new()
         .route("/", get(root))
-        .route("/printer-names", get(routes::get_printer_names))
-        .route("/print/:printer_name", get(routes::print));
+        .route("/printers", get(routes::get_printer_names))
+        .route("/print", post(routes::print))
+        .layer(cors);
 
     let port = "0.0.0.0:4590";
     let listener = tokio::net::TcpListener::bind(port).await.unwrap();
