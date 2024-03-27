@@ -2,7 +2,7 @@
 Printer server written in pure rust
 
 ## All the available routes
-- `localhost:4590/printer-names` for the list of available printers by name
+- `localhost:4590/printer-names` for the list of printer names available on the device
 - `localhost:4590/print/[printer-name]` to print the document with the specified `printer-name`
 
 ## Build instruction
@@ -18,5 +18,5 @@ rustup target add x86_64-unknown-linux-gnu
 cargo build --release --target x86_64-unknown-linux-gnu
 ```
 
-> Required rust setted. For instruction on how to setup [rust](https://www.rust-lang.org/learn/get-started)
+> Required rust setted up. For instruction on how to setup [rust](https://www.rust-lang.org/learn/get-started)
 
