@@ -1,12 +1,12 @@
-use axum::{extract::Path, http::StatusCode, Json};
-use base64::prelude::*;
+use axum::{http::StatusCode, Json};
 use printers;
-use serde::{Deserialize, Serialize};
-use std::env;
+use serde::Deserialize;
 use tokio::fs::File;
 use tokio::io::AsyncWriteExt;
+use std::process::Command;
 
 pub async fn get_printer_names() -> (StatusCode, Json<Vec<String>>) {
+    println!("Getting printer names");
     let printers = printers::get_printers();
     if printers.is_empty() {
         (StatusCode::NOT_FOUND, Json(vec![]))
@@ -16,49 +16,46 @@ pub async fn get_printer_names() -> (StatusCode, Json<Vec<String>>) {
     }
 }
 
-#[derive(Deserialize, Serialize)]
-pub struct Params {
-    printer_name: String,
-}
-
 #[derive(Deserialize)]
 pub struct PrintRequestBody {
+    printer_name: String,
     name: String,
-    encoded_data: String,
+    content: String,
 }
 
 pub async fn print(
-    Path(Params { printer_name }): Path<Params>,
     Json(payload): Json<PrintRequestBody>,
 ) -> StatusCode {
-    println!("Attempting to print with {} printer", printer_name);
+    println!("Attempting to print with {} printer", payload.printer_name.as_str());
+    let filename = payload.name.clone();
+    
+    // put the content into the html body
+    let mut content_str = "<!DOCTYPE html><html><head><title>Page Title</title></head><body>".to_owned();
+    content_str.push_str(&payload.content);
+    content_str.push_str("</body></html>");
 
-    let decoded_data = match BASE64_STANDARD.decode(payload.encoded_data) {
-        Ok(data) => data,
-        Err(_) => {
-            println!("Decoding error");
-            return StatusCode::BAD_REQUEST;
-        }
-    };
-    let mut filename = payload.name.clone();
-    filename.push_str(".pdf");
+    // write the html string to a temp html file
+    let temp_html_path = format!("{}.html", filename);
+    let temp_pdf_path = format!("{}.pdf", filename);
+    let mut file = File::create(&temp_html_path).await.expect("Failed to create file");
+    file.write_all(content_str.as_bytes()).await.expect("Failed to write to file");
+    drop(file);
 
-    let mut file = match File::create(&filename).await {
-        Ok(file) => file,
-        Err(_) => return StatusCode::INTERNAL_SERVER_ERROR,
-    };
-
-    if let Err(_) = file.write_all(&decoded_data).await {
+    // convert the html file to a pdf file
+    let output = Command::new("html2pdf")
+        .arg(&temp_html_path)
+        .output()
+        .expect("Failed to execute command");
+    if output.status.success() {
+        println!("Successfully converted to pdf file")
+    } else {
+        println!("Failed to convert to pdf file");
         return StatusCode::INTERNAL_SERVER_ERROR;
     }
 
-    let status = printers::print_file(
-        printer_name.as_ref(),
-        &filename,
-        Some("Test printer server"),
-    );
-    if status.is_ok() {
-        println!("Currently printing...");
+    // print the pdf file to the printer
+    if printers::print_file(&payload.printer_name, &temp_pdf_path, Some("Printing from the server")).is_ok() {
+        println!("Printing info: \nPrinter: {}\nFile: {}\n", &payload.printer_name, &temp_pdf_path);
         StatusCode::OK
     } else {
         StatusCode::INTERNAL_SERVER_ERROR
