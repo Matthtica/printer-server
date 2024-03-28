@@ -19,6 +19,7 @@ async fn main() {
         .route("/", get(root))
         .route("/printers", get(routes::get_printer_names))
         .route("/print", post(routes::print))
+        .route("/testprint", post(routes::test_print))
         .layer(cors);
 
     let ipaddress = local_ip().unwrap();
