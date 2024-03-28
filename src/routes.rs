@@ -1,9 +1,9 @@
 use axum::{http::StatusCode, Json};
 use printers;
 use serde::Deserialize;
+use std::process::Command;
 use tokio::fs::File;
 use tokio::io::AsyncWriteExt;
-use std::process::Command;
 
 pub async fn get_printer_names() -> (StatusCode, Json<Vec<String>>) {
     println!("Getting printer names");
@@ -23,22 +23,28 @@ pub struct PrintRequestBody {
     content: String,
 }
 
-pub async fn print(
-    Json(payload): Json<PrintRequestBody>,
-) -> StatusCode {
-    println!("Attempting to print with {} printer", payload.printer_name.as_str());
+pub async fn print(Json(payload): Json<PrintRequestBody>) -> StatusCode {
+    println!(
+        "Attempting to print with {} printer",
+        payload.printer_name.as_str()
+    );
     let filename = payload.name.clone();
-    
+
     // put the content into the html body
-    let mut content_str = "<!DOCTYPE html><html><head><title>Page Title</title></head><body>".to_owned();
+    let mut content_str =
+        "<!DOCTYPE html><html><head><title>Page Title</title></head><body>".to_owned();
     content_str.push_str(&payload.content);
     content_str.push_str("</body></html>");
 
     // write the html string to a temp html file
     let temp_html_path = format!("{}.html", filename);
     let temp_pdf_path = format!("{}.pdf", filename);
-    let mut file = File::create(&temp_html_path).await.expect("Failed to create file");
-    file.write_all(content_str.as_bytes()).await.expect("Failed to write to file");
+    let mut file = File::create(&temp_html_path)
+        .await
+        .expect("Failed to create file");
+    file.write_all(content_str.as_bytes())
+        .await
+        .expect("Failed to write to file");
     drop(file);
 
     // convert the html file to a pdf file
@@ -54,8 +60,16 @@ pub async fn print(
     }
 
     // print the pdf file to the printer
-    if printers::print_file(&payload.printer_name, &temp_pdf_path, Some("Printing from the server")).is_ok() {
-        println!("Printing info: \nPrinter: {}\nFile: {}\n", &payload.printer_name, &temp_pdf_path);
+    let status = printers::print_file(
+        &payload.printer_name,
+        &temp_pdf_path,
+        Some("Printing from the server"),
+    );
+    if status.is_ok() {
+        println!(
+            "Printing info... \nPrinter: {}\nFile: {}\n",
+            &payload.printer_name, &temp_pdf_path
+        );
         StatusCode::OK
     } else {
         StatusCode::INTERNAL_SERVER_ERROR
