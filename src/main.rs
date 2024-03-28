@@ -1,8 +1,8 @@
 use axum::{
+    http::header::CONTENT_TYPE,
+    http::Method,
     routing::{get, post},
     Router,
-    http::Method,
-    http::header::CONTENT_TYPE
 };
 use printer_server::*;
 use tower_http::cors::{Any, CorsLayer};
