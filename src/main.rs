@@ -4,6 +4,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
+use local_ip_address::local_ip;
 use printer_server::*;
 use tower_http::cors::{Any, CorsLayer};
 
@@ -20,9 +21,13 @@ async fn main() {
         .route("/print", post(routes::print))
         .layer(cors);
 
-    let port = "0.0.0.0:4590";
-    let listener = tokio::net::TcpListener::bind(port).await.unwrap();
-    println!("Listening on {}", listener.local_addr().unwrap());
+    let ipaddress = local_ip().unwrap();
+    let port = "4590";
+
+    let access_point = format!("{:?}:{}", ipaddress, port);
+
+    let listener = tokio::net::TcpListener::bind(&access_point).await.unwrap();
+    println!("Listening on:  {}", &access_point);
     axum::serve(listener, app).await.unwrap();
 }
 
